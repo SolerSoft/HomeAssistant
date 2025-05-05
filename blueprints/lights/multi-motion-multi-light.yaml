@@ -4,45 +4,44 @@ blueprint:
     Turns on multiple lights when motion is detected and off after a delay,
     using day/night brightness levels, but only if ambient light is below a configured threshold.
   domain: automation
+  source_url: https://raw.githubusercontent.com/SolerSoft/HomeAssistant/refs/heads/main/blueprints/lights/multi-motion-multi-light.yaml
   input:
-    # Motion sensors that will trigger the automation
-    motion_sensors:
-      name: Motion/Occupancy Sensors
-      description: Motion or occupancy sensors that turn lights on and off
+    # Motion that will trigger the automation
+    motion_entity:
+      name: "Motion or Occupancy"
+      icon: mdi:cog-outline
+      description: Binary sensor that turns lights on and off
       selector:
-        target:
-          entity:
-            domain: binary_sensor
-            device_class:
-              - motion
-              - occupancy
+        entity:
+          domain: binary_sensor
     # Lights to be controlled by the automation
     on_lights:
-      name: Activated Lights
+      name: "Activated Lights"
+      icon: mdi:lightbulb-on-outline
       description: Light entities that turn on when motion is detected
-      default: {}
+      default: []
       selector:
         target:
           entity:
             domain: light
     off_lights:
-      name: Deactivated Lights
+      name: "Deactivated Lights"
+      icon: mdi:lightbulb-outline
       description: Light entities that turn off when motion stops
-      default: {}
+      default: []
       selector:
         target:
           entity:
             domain: light
     # Ambient light sensors to prevent lights from turning on when it's already bright enough
-    illuminance_sensors:
-      name: Illuminance Sensors
-      description: Optional light sensors to prevent lights from turning on
-      default: {}
+    illuminance_sensor:
+      name: "Illuminance Sensor"
+      description: Optional illuminance sensor to prevent lights from turning on
+      default:
       selector:
-        target:
-          entity:
-            domain: sensor
-            device_class: illuminance
+        entity:
+          domain: sensor
+          device_class: illuminance
     # Maximum ambient light level (in lux) at which lights will still turn on
     maximum_luminance:
       name: Maximum Luminance
@@ -101,9 +100,8 @@ blueprint:
 # Trigger when any motion sensor detects motion
 trigger:
   - platform: state
-    id: "motion_trigger"
-    entity_id: >
-      {{ expand(input.motion_sensors) | map(attribute='entity_id') | list }}
+    id: "motion_entity"
+    entity_id: input.motion_entity
     to: "on"
 
 action:
@@ -119,11 +117,8 @@ action:
           # Check if ambient light is below threshold (if configured)
           - condition: template
             value_template: >
-              {% if expand(input.illuminance_sensors) | length > 0 and input.maximum_luminance | int > 0 %}
-                {{ expand(input.illuminance_sensors)
-                   | map(attribute='state')
-                   | map('float')
-                   | max < input.maximum_luminance | float }}
+              {% if input.illuminance_sensor is not none and input.maximum_luminance | int > 0 %}
+                {{ states(input.illuminance_sensor) | float <= input.maximum_luminance | float }}
               {% else %}
                 true
               {% endif %}
@@ -144,11 +139,8 @@ action:
           # Check if ambient light is below threshold (if configured)
           - condition: template
             value_template: >
-              {% if expand(input.illuminance_sensors) | length > 0 and input.maximum_luminance | int > 0 %}
-                {{ expand(input.illuminance_sensors)
-                   | map(attribute='state')
-                   | map('float')
-                   | max < input.maximum_luminance | float }}
+              {% if input.illuminance_sensor is not none and input.maximum_luminance | int > 0 %}
+                {{ states(input.illuminance_sensor) | float <= input.maximum_luminance | float }}
               {% else %}
                 true
               {% endif %}
@@ -161,8 +153,7 @@ action:
   # Wait for motion to stop and delay period to expire
   - wait_for_trigger:
       - platform: state
-        entity_id: >
-          {{ expand(input.motion_sensors) | map(attribute='entity_id') | list }}
+        entity_id: input.motion_entity
         to: "off"
         for:
           minutes: !input off_delay
@@ -170,14 +161,9 @@ action:
   # Turn off lights if all motion sensors are off
   - choose:
       - conditions:
-          - condition: template
-            value_template: >
-              {{ expand(input.motion_sensors)
-                 | map(attribute='state')
-                 | list
-                 | select('equalto', 'off')
-                 | list
-                 | length == expand(input.motion_sensors) | length }}
+          - condition: state
+            entity_id: !input motion_entity
+            state: "off"
         sequence:
           - service: light.turn_off
             target: !input off_lights
