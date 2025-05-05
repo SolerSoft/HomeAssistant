@@ -3,7 +3,7 @@ blueprint:
   description: >
     Can turn on and off different lights and use different brightness levels based on the time of day.
   domain: automation
-  source_url: https://raw.githubusercontent.com/SolerSoft/HomeAssistant/refs/heads/main/blueprints/lights/motion-light-brightness.yaml
+  source_url: https://github.com/SolerSoft/HomeAssistant/blob/main/blueprints/lights/motion-light-brightness.yaml
   input:
     # Motion that will trigger the automation
     binary_entity:
