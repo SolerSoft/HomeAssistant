@@ -7,12 +7,14 @@ blueprint:
   input:
     # Motion sensors that will trigger the automation
     motion_sensors:
-      name: Motion Sensors
-      description: One or more motion sensor entities
+      name: Motion/Occupancy Sensors
+      description: One or more motion or occupancy sensor entities
       selector:
         entity:
           domain: binary_sensor
-          device_class: motion
+          device_class:
+            - motion
+            - occupancy
     # Lights to be controlled by the automation
     lights:
       name: Lights
@@ -45,10 +47,14 @@ blueprint:
     # How long to wait after motion stops before turning off lights
     off_delay:
       name: Off Delay
-      description: Time to wait after motion stops before turning off lights
-      default: 00:02:00
+      description: Minutes to wait after motion stops before turning off lights
+      default: 2
       selector:
-        time: {}
+        number:
+          min: 1
+          max: 60
+          step: 1
+          unit_of_measurement: min
     # Time when daytime mode begins
     day_start:
       name: Day Start Time
@@ -143,7 +149,8 @@ action:
       - platform: state
         entity_id: !input motion_sensors
         to: "off"
-        for: !input off_delay
+        for:
+          minutes: !input off_delay
     continue_on_timeout: false
   # Turn off lights if motion has stopped
   - choose:
