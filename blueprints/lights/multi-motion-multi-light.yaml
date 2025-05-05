@@ -1,8 +1,8 @@
 blueprint:
-  name: Multi-Motion Activated Light
+  name: Multi-Motion Multi-Light
   description: >
-    Turns on lights when motion is detected and off after a delay,
-    using day/night brightness levels, but only if ambient illuminance is below a configured threshold.
+    Turns lights when motion is detected and off after a delay,
+    using day/night brightness levels with optional ambient brightness threshold.
   domain: automation
   input:
     # Motion sensors that will trigger the automation
