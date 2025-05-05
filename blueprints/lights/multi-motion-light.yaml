@@ -1,0 +1,167 @@
+blueprint:
+  name: Multi-Motion Activated Light
+  description: >
+    Turns on lights when motion is detected and off after a delay,
+    using day/night brightness levels, but only if ambient illuminance is below a configured threshold.
+  domain: automation
+  input:
+    # Motion sensors that will trigger the automation
+    motion_sensors:
+      name: Motion Sensors
+      description: One or more motion sensor entities
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+    # Lights to be controlled by the automation
+    lights:
+      name: Lights
+      description: One or more light entities
+      selector:
+        target:
+          entity:
+            domain: light
+    # Ambient light sensors to prevent lights from turning on when it's already bright enough
+    illuminance_sensors:
+      name: Illuminance Sensors
+      description: One or more ambient light sensors (lux)
+      selector:
+        target:
+          entity:
+            domain: sensor
+            device_class: illuminance
+    # Maximum ambient light level (in lux) at which lights will still turn on
+    maximum_luminance:
+      name: Maximum Luminance
+      description: >
+        Lux threshold above which lights will not turn on.
+        Set to 0 to disable ambient light guarding.
+      default: 0
+      selector:
+        number:
+          min: 0
+          step: 1
+    # How long to wait after motion stops before turning off lights
+    off_delay:
+      name: Off Delay
+      description: Time to wait after motion stops before turning off lights
+      default: 00:02:00
+      selector:
+        time: {}
+    # Time when daytime mode begins
+    day_start:
+      name: Day Start Time
+      description: Time when daytime begins
+      selector:
+        input_datetime:
+          with_date: false
+          with_time: true
+    # Brightness level for daytime operation (0-255)
+    day_brightness:
+      name: Day Brightness
+      description: Brightness level (0–255) for daytime
+      default: 200
+      selector:
+        number:
+          min: 0
+          max: 255
+    # Time when nighttime mode begins
+    night_start:
+      name: Night Start Time
+      description: Time when nighttime begins
+      selector:
+        input_datetime:
+          with_date: false
+          with_time: true
+    # Brightness level for nighttime operation (0-255)
+    night_brightness:
+      name: Night Brightness
+      description: Brightness level (0–255) for nighttime
+      default: 80
+      selector:
+        number:
+          min: 0
+          max: 255
+  # Validate that day start time is before night start time
+  validation:
+    - name: "Day start must be before night start"
+      message: "Day start time must be before night start time"
+      condition: >
+        {% set ds = states['input_datetime'][input.day_start].as_datetime() %}
+        {% set ns = states['input_datetime'][input.night_start].as_datetime() %}
+        {{ ds < ns }}
+
+# Trigger when any motion sensor detects motion
+trigger:
+  - platform: state
+    entity_id: !input motion_sensors
+    to: "on"
+
+action:
+  - choose:
+      - conditions:
+          # Check if current time is between day_start and night_start
+          - condition: template
+            value_template: >
+              {% set now = now().timestamp() %}
+              {% set ds = states['input_datetime'][input.day_start].as_datetime().timestamp() %}
+              {% set ns = states['input_datetime'][input.night_start].as_datetime().timestamp() %}
+              {{ ds <= now < ns }}
+          # Check if ambient light is below threshold (if configured)
+          - condition: template
+            value_template: >
+              {% if expand(input.illuminance_sensors) | length > 0 and input.maximum_luminance | int > 0 %}
+                {{ expand(input.illuminance_sensors)
+                   | map(attribute='state')
+                   | map('float')
+                   | max < input.maximum_luminance | float }}
+              {% else %}
+                true
+              {% endif %}
+        sequence:
+          # Turn on lights with daytime brightness
+          - service: light.turn_on
+            target: !input lights
+            data:
+              brightness: !input day_brightness
+      - conditions:
+          # Check if current time is between night_start and day_start (overnight)
+          - condition: template
+            value_template: >
+              {% set now = now().timestamp() %}
+              {% set ds = states['input_datetime'][input.day_start].as_datetime().timestamp() %}
+              {% set ns = states['input_datetime'][input.night_start].as_datetime().timestamp() %}
+              {{ now >= ns or now < ds }}
+          # Check if ambient light is below threshold (if configured)
+          - condition: template
+            value_template: >
+              {% if expand(input.illuminance_sensors) | length > 0 and input.maximum_luminance | int > 0 %}
+                {{ expand(input.illuminance_sensors)
+                   | map(attribute='state')
+                   | map('float')
+                   | max < input.maximum_luminance | float }}
+              {% else %}
+                true
+              {% endif %}
+        sequence:
+          # Turn on lights with nighttime brightness
+          - service: light.turn_on
+            target: !input lights
+            data:
+              brightness: !input night_brightness
+  # Wait for motion to stop and delay period to expire
+  - wait_for_trigger:
+      - platform: state
+        entity_id: !input motion_sensors
+        to: "off"
+        for: !input off_delay
+    continue_on_timeout: false
+  # Turn off lights if motion has stopped
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input motion_sensors
+            state: "off"
+        sequence:
+          - service: light.turn_off
+            target: !input lights
