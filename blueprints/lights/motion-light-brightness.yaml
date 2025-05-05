@@ -16,7 +16,7 @@ blueprint:
     on_lights:
       name: "Activated Lights"
       description: Light entities that turn on when motion is detected
-      default: []
+      default:
       selector:
         target:
           entity:
@@ -24,7 +24,7 @@ blueprint:
     off_lights:
       name: "Deactivated Lights"
       description: Light entities that turn off when motion stops
-      default: []
+      default:
       selector:
         target:
           entity:
