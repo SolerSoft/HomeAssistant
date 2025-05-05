@@ -8,7 +8,6 @@ blueprint:
     # Motion that will trigger the automation
     binary_entity:
       name: "Motion or Occupancy"
-      icon: mdi:radar
       description: Binary sensor that turns lights on and off
       selector:
         entity:
@@ -16,7 +15,6 @@ blueprint:
     # Lights to be controlled by the automation
     on_lights:
       name: "Activated Lights"
-      icon: mdi:lightbulb-on-outline
       description: Light entities that turn on when motion is detected
       default: []
       selector:
@@ -25,7 +23,6 @@ blueprint:
             domain: light
     off_lights:
       name: "Deactivated Lights"
-      icon: mdi:lightbulb-outline
       description: Light entities that turn off when motion stops
       default: []
       selector:
