@@ -1,8 +1,7 @@
 blueprint:
-  name: Multi-Motion Multi-Light
+  name: Motion Lights with Day/Night Brightness
   description: >
-    Turns on multiple lights when motion is detected and off after a delay,
-    using day/night brightness levels, but only if ambient light is below a configured threshold.
+    Can turn on and off different lights and use different brightness levels based on the time of day.
   domain: automation
   source_url: https://raw.githubusercontent.com/SolerSoft/HomeAssistant/refs/heads/main/blueprints/lights/multi-motion-multi-light.yaml
   input:
