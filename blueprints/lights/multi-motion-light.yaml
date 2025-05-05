@@ -98,8 +98,8 @@ blueprint:
 # Trigger when any motion sensor detects motion
 trigger:
   - platform: state
-    entity_id: >-
-      {{ expand(input.motion_sensors.target) | map(attribute='entity_id') | list }}
+    id: "motion_trigger"
+    entity_id: !input motion_sensors
     to: "on"
 
 action:
