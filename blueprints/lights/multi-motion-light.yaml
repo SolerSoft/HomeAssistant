@@ -53,9 +53,7 @@ blueprint:
       name: Day Start Time
       description: Time when daytime begins
       selector:
-        input_datetime:
-          with_date: false
-          with_time: true
+        time: {}
     # Brightness level for daytime operation (0-255)
     day_brightness:
       name: Day Brightness
@@ -70,9 +68,7 @@ blueprint:
       name: Night Start Time
       description: Time when nighttime begins
       selector:
-        input_datetime:
-          with_date: false
-          with_time: true
+        time: {}
     # Brightness level for nighttime operation (0-255)
     night_brightness:
       name: Night Brightness
@@ -87,8 +83,8 @@ blueprint:
     - name: "Day start must be before night start"
       message: "Day start time must be before night start time"
       condition: >
-        {% set ds = states['input_datetime'][input.day_start].as_datetime() %}
-        {% set ns = states['input_datetime'][input.night_start].as_datetime() %}
+        {% set ds = strptime(input.day_start, "%H:%M:%S").time() %}
+        {% set ns = strptime(input.night_start, "%H:%M:%S").time() %}
         {{ ds < ns }}
 
 # Trigger when any motion sensor detects motion
@@ -103,9 +99,9 @@ action:
           # Check if current time is between day_start and night_start
           - condition: template
             value_template: >
-              {% set now = now().timestamp() %}
-              {% set ds = states['input_datetime'][input.day_start].as_datetime().timestamp() %}
-              {% set ns = states['input_datetime'][input.night_start].as_datetime().timestamp() %}
+              {% set now = now().time() %}
+              {% set ds = strptime(input.day_start, "%H:%M:%S").time() %}
+              {% set ns = strptime(input.night_start, "%H:%M:%S").time() %}
               {{ ds <= now < ns }}
           # Check if ambient light is below threshold (if configured)
           - condition: template
@@ -128,9 +124,9 @@ action:
           # Check if current time is between night_start and day_start (overnight)
           - condition: template
             value_template: >
-              {% set now = now().timestamp() %}
-              {% set ds = states['input_datetime'][input.day_start].as_datetime().timestamp() %}
-              {% set ns = states['input_datetime'][input.night_start].as_datetime().timestamp() %}
+              {% set now = now().time() %}
+              {% set ds = strptime(input.day_start, "%H:%M:%S").time() %}
+              {% set ns = strptime(input.night_start, "%H:%M:%S").time() %}
               {{ now >= ns or now < ds }}
           # Check if ambient light is below threshold (if configured)
           - condition: template
