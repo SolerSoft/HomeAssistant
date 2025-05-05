@@ -8,38 +8,38 @@ blueprint:
     # Motion sensors that will trigger the automation
     motion_sensors:
       name: Motion/Occupancy Sensors
-      description: Motion or occupancy sensors that turn lights on and off
+      description: Motion or occupancy sensors that turn on and off
       selector:
-        target:
-          entity:
-            domain: binary_sensor
-            device_class:
-              - motion
-              - occupancy
+        entity:
+          domain: binary_sensor
+          device_class:
+            - motion
+            - occupancy
+          multiple: true
     # Lights to be controlled by the automation
     on_lights:
       name: Motion-Activated Lights
       description: Light entities that turn on when motion is detected
       selector:
-        target:
-          entity:
-            domain: light
+        entity:
+          domain: light
+          multiple: true
     off_lights:
       name: Motion-Deactivated Lights
       description: Light entities that turn off when motion stops
       selector:
-        target:
-          entity:
-            domain: light
+        entity:
+          domain: light
+          multiple: true
     # Ambient light sensors to prevent lights from turning on when it's already bright enough
     illuminance_sensors:
       name: Illuminance Sensors
       description: Optional light sensors to prevent lights from turning on
       selector:
-        target:
-          entity:
-            domain: sensor
-            device_class: illuminance
+        entity:
+          domain: sensor
+          device_class: illuminance
+          multiple: true
     # Maximum ambient light level (in lux) at which lights will still turn on
     maximum_luminance:
       name: Maximum Luminance
