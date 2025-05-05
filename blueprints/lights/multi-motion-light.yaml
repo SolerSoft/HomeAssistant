@@ -8,7 +8,7 @@ blueprint:
     # Motion sensors that will trigger the automation
     motion_sensors:
       name: Motion/Occupancy Sensors
-      description: One or more motion or occupancy sensor entities
+      description: Motion or occupancy sensors that turn lights on and off
       selector:
         target:
           entity:
@@ -17,9 +17,16 @@ blueprint:
               - motion
               - occupancy
     # Lights to be controlled by the automation
-    lights:
-      name: Lights
-      description: One or more light entities
+    on_lights:
+      name: Motion-Activated Lights
+      description: Light entities that turn on when motion is detected
+      selector:
+        target:
+          entity:
+            domain: light
+    off_lights:
+      name: Motion-Deactivated Lights
+      description: Light entities that turn off when motion stops
       selector:
         target:
           entity:
@@ -27,7 +34,7 @@ blueprint:
     # Ambient light sensors to prevent lights from turning on when it's already bright enough
     illuminance_sensors:
       name: Illuminance Sensors
-      description: One or more ambient light sensors (lux)
+      description: Optional light sensors to prevent lights from turning on
       selector:
         target:
           entity:
@@ -37,8 +44,7 @@ blueprint:
     maximum_luminance:
       name: Maximum Luminance
       description: >
-        Lux threshold above which lights will not turn on.
-        Set to 0 to disable ambient light guarding.
+        Lux threshold above which lights won't turn on (0 to disable)
       default: 0
       selector:
         number:
@@ -48,11 +54,11 @@ blueprint:
     # How long to wait after motion stops before turning off lights
     off_delay:
       name: Off Delay
-      description: Minutes to wait after motion stops before turning off lights
+      description: Minutes to wait after motion stops before turning lights off (0 for immediate)
       default: 2
       selector:
         number:
-          min: 1
+          min: 0
           max: 60
           step: 1
           unit_of_measurement: min
@@ -60,13 +66,14 @@ blueprint:
     day_start:
       name: Day Start Time
       description: Time when daytime begins
+      default: "08:00:00"
       selector:
         time: {}
     # Brightness level for daytime operation (0-255)
     day_brightness:
       name: Day Brightness
       description: Brightness level (0–255) for daytime
-      default: 200
+      default: 255
       selector:
         number:
           min: 0
@@ -75,6 +82,7 @@ blueprint:
     night_start:
       name: Night Start Time
       description: Time when nighttime begins
+      default: "22:30:00"
       selector:
         time: {}
     # Brightness level for nighttime operation (0-255)
@@ -90,7 +98,8 @@ blueprint:
 # Trigger when any motion sensor detects motion
 trigger:
   - platform: state
-    entity_id: !input motion_sensors
+    entity_id: >-
+      {{ expand(input.motion_sensors.target) | map(attribute='entity_id') | list }}
     to: "on"
 
 action:
@@ -117,7 +126,7 @@ action:
         sequence:
           # Turn on lights with daytime brightness
           - service: light.turn_on
-            target: !input lights
+            target: !input on_lights
             data:
               brightness: !input day_brightness
       - conditions:
@@ -142,7 +151,7 @@ action:
         sequence:
           # Turn on lights with nighttime brightness
           - service: light.turn_on
-            target: !input lights
+            target: !input on_lights
             data:
               brightness: !input night_brightness
   # Wait for motion to stop and delay period to expire
@@ -166,4 +175,4 @@ action:
                  | length == expand(input.motion_sensors) | length }}
         sequence:
           - service: light.turn_off
-            target: !input lights
+            target: !input off_lights
