@@ -10,11 +10,12 @@ blueprint:
       name: Motion/Occupancy Sensors
       description: One or more motion or occupancy sensor entities
       selector:
-        entity:
-          domain: binary_sensor
-          device_class:
-            - motion
-            - occupancy
+        target:
+          entity:
+            domain: binary_sensor
+            device_class:
+              - motion
+              - occupancy
     # Lights to be controlled by the automation
     lights:
       name: Lights
@@ -152,12 +153,17 @@ action:
         for:
           minutes: !input off_delay
     continue_on_timeout: false
-  # Turn off lights if motion has stopped
+  # Turn off lights if all motion sensors are off
   - choose:
       - conditions:
-          - condition: state
-            entity_id: !input motion_sensors
-            state: "off"
+          - condition: template
+            value_template: >
+              {{ expand(input.motion_sensors)
+                 | map(attribute='state')
+                 | list
+                 | select('equalto', 'off')
+                 | list
+                 | length == expand(input.motion_sensors) | length }}
         sequence:
           - service: light.turn_off
             target: !input lights
