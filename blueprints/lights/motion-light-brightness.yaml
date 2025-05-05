@@ -103,21 +103,28 @@ trigger:
 action:
   # Define variables used in the automation
   - variables:
-      # Calculate if we're in daytime (between day_start and night_start)
-      is_daytime: >
-        {% set now = now().time() %}
-        {% set ds = strptime(input.day_start, "%H:%M:%S").time() %}
-        {% set ns = strptime(input.night_start, "%H:%M:%S").time() %}
-        {{ ds <= now < ns }}
-      # Calculate the current brightness based on time of day
-      current_brightness: "{{ input.day_brightness if is_daytime else input.night_brightness }}"
-      # Check if light level is acceptable (if sensor is configured)
-      light_level_ok: >
-        {% if input.illuminance_sensor is not none and input.maximum_luminance | int > 0 %}
-          {{ states(input.illuminance_sensor) | float <= input.maximum_luminance | float }}
-        {% else %}
-          true
-        {% endif %}
+    # Make input variables available as script variables
+    day_start: !input day_start
+    day_brightness: !input day_brightness
+    night_start: !input night_start
+    night_brightness: !input night_brightness
+    illuminance_sensor: !input illuminance_sensor
+    maximum_luminance: !input maximum_luminance
+    # Calculate if we're in daytime (between day_start and night_start)
+    is_daytime: >
+      {% set now = now().time() %}
+      {% set ds = strptime(day_start, "%H:%M:%S").time() %}
+      {% set ns = strptime(night_start, "%H:%M:%S").time() %}
+      {{ ds <= now < ns }}
+    # Calculate the current brightness based on time of day
+    current_brightness: "{{ day_brightness if is_daytime else night_brightness }}"
+    # Check if light level is acceptable (if sensor is configured)
+    light_level_ok: >
+      {% if illuminance_sensor is not none and maximum_luminance | int > 0 %}
+        {{ states(illuminance_sensor) | float <= maximum_luminance | float }}
+      {% else %}
+        true
+      {% endif %}
 
   # Check if light level is acceptable before proceeding
   - condition: template
