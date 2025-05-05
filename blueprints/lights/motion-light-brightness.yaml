@@ -1,5 +1,5 @@
 blueprint:
-  name: Motion Lights with Day/Night Brightness
+  name: Motion Lights with Day and Night Brightness
   description: >
     Can turn on and off different lights and use different brightness levels based on the time of day.
   domain: automation
