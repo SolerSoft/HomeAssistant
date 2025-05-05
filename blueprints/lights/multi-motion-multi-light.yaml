@@ -1,45 +1,45 @@
 blueprint:
   name: Multi-Motion Multi-Light
   description: >
-    Turns on lights when motion is detected and off after a delay,
-    using day/night brightness levels, but only if ambient brightness is below a configured threshold.
+    Turns on multiple lights when motion is detected and off after a delay,
+    using day/night brightness levels, but only if ambient light is below a configured threshold.
   domain: automation
   input:
     # Motion sensors that will trigger the automation
     motion_sensors:
       name: Motion/Occupancy Sensors
-      description: Motion or occupancy sensors that turn on and off
+      description: Motion or occupancy sensors that turn lights on and off
       selector:
-        entity:
-          domain: binary_sensor
-          device_class:
-            - motion
-            - occupancy
-          multiple: true
+        target:
+          entity:
+            domain: binary_sensor
+            device_class:
+              - motion
+              - occupancy
     # Lights to be controlled by the automation
     on_lights:
-      name: Motion-Activated Lights
+      name: Activated Lights
       description: Light entities that turn on when motion is detected
       selector:
-        entity:
-          domain: light
-          multiple: true
+        target:
+          entity:
+            domain: light
     off_lights:
-      name: Motion-Deactivated Lights
+      name: Deactivated Lights
       description: Light entities that turn off when motion stops
       selector:
-        entity:
-          domain: light
-          multiple: true
+        target:
+          entity:
+            domain: light
     # Ambient light sensors to prevent lights from turning on when it's already bright enough
     illuminance_sensors:
       name: Illuminance Sensors
       description: Optional light sensors to prevent lights from turning on
       selector:
-        entity:
-          domain: sensor
-          device_class: illuminance
-          multiple: true
+        target:
+          entity:
+            domain: sensor
+            device_class: illuminance
     # Maximum ambient light level (in lux) at which lights will still turn on
     maximum_luminance:
       name: Maximum Luminance
@@ -99,7 +99,7 @@ blueprint:
 trigger:
   - platform: state
     id: "motion_trigger"
-    entity_id: !input motion_sensors
+    entity_id: !input "motion_sensors.target"
     to: "on"
 
 action:
@@ -157,7 +157,7 @@ action:
   # Wait for motion to stop and delay period to expire
   - wait_for_trigger:
       - platform: state
-        entity_id: !input motion_sensors
+        entity_id: !input "motion_sensors.target"
         to: "off"
         for:
           minutes: !input off_delay
