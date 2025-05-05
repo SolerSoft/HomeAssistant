@@ -93,16 +93,15 @@ blueprint:
           min: 0
           max: 255
 
-# Trigger when any motion sensor detects motion
-trigger:
-  - platform: state
+  # Trigger when any motion sensor detects motion
+  trigger:
+    platform: state
     id: "binary_entity"
     entity_id: input.binary_entity
     to: "on"
 
-action:
   # Define variables used in the automation
-  - variables:
+  variables:
     # Make input variables available as script variables
     day_start: !input day_start
     day_brightness: !input day_brightness
@@ -127,22 +126,24 @@ action:
       {% endif %}
 
   # Check if light level is acceptable before proceeding
-  - condition: template
-    value_template: "{{ light_level_ok }}"
+  condition:
+    - condition: template
+      value_template: "{{ light_level_ok }}"
 
-  # Turn on lights with appropriate brightness
-  - service: light.turn_on
-    target: !input on_lights
-    data:
-      brightness: "{{ current_brightness }}"
+  action:
+    # Turn on lights with appropriate brightness
+    - service: light.turn_on
+      target: !input on_lights
+      data:
+        brightness: "{{ current_brightness }}"
 
-  # Wait for motion to stop and delay period to expire
-  - wait_for_trigger:
-      - platform: state
-        entity_id: !input binary_entity
-        to: "off"
-  - delay: !input no_motion_delay
+    # Wait for motion to stop and delay period to expire
+    - wait_for_trigger:
+        - platform: state
+          entity_id: !input binary_entity
+          to: "off"
+    - delay: !input no_motion_delay
 
-  # Turn off lights
-  - service: light.turn_off
-    target: !input off_lights
+    # Turn off lights
+    - service: light.turn_off
+      target: !input off_lights
