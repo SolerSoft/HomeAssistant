@@ -101,8 +101,8 @@ max_exceeded: silent
 # Trigger when any motion sensor detects motion
 trigger:
   platform: state
-  id: "binary_entity"
-  entity_id: input.binary_entity
+  entity_id: !input binary_entity
+  from: "off"
   to: "on"
 
 # Define variables used in the automation
