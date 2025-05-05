@@ -99,7 +99,7 @@ blueprint:
 trigger:
   - platform: state
     id: "motion_trigger"
-    entity_id: !input motion_sensors
+    entity_id: "{{ expand(input.motion_sensors) | map(attribute='entity_id') | list }}"
     to: "on"
 
 action:
@@ -157,7 +157,7 @@ action:
   # Wait for motion to stop and delay period to expire
   - wait_for_trigger:
       - platform: state
-        entity_id: !input motion_sensors
+        entity_id: "{{ expand(input.motion_sensors) | map(attribute='entity_id') | list }}"
         to: "off"
         for:
           minutes: !input off_delay
