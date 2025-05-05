@@ -40,9 +40,9 @@ blueprint:
           device_class: illuminance
     # Maximum ambient light level (in lux) at which lights will still turn on
     maximum_luminance:
-      name: Maximum Luminance
+      name: Maximum Ambient
       description: >
-        Lux threshold above which lights won't turn on (0 to disable)
+        If luminance sensor available, lights won't turn on above this lux (0 to disable)
       default: 0
       selector:
         number:
@@ -146,6 +146,7 @@ action:
   - wait_for_trigger:
       - platform: state
         entity_id: !input binary_entity
+        from: "on"
         to: "off"
   - delay: !input no_motion_delay
 
