@@ -93,57 +93,62 @@ blueprint:
           min: 0
           max: 255
 
-  # Trigger when any motion sensor detects motion
-  trigger:
-    platform: state
-    id: "binary_entity"
-    entity_id: input.binary_entity
-    to: "on"
+# If motion is detected within the delay,
+# we restart the script.
+mode: restart
+max_exceeded: silent
 
-  # Define variables used in the automation
-  variables:
-    # Make input variables available as script variables
-    day_start: !input day_start
-    day_brightness: !input day_brightness
-    night_start: !input night_start
-    night_brightness: !input night_brightness
-    illuminance_sensor: !input illuminance_sensor
-    maximum_luminance: !input maximum_luminance
-    # Calculate if we're in daytime (between day_start and night_start)
-    is_daytime: >
-      {% set now = now().time() %}
-      {% set ds = strptime(day_start, "%H:%M:%S").time() %}
-      {% set ns = strptime(night_start, "%H:%M:%S").time() %}
-      {{ ds <= now < ns }}
-    # Calculate the current brightness based on time of day
-    current_brightness: "{{ day_brightness if is_daytime else night_brightness }}"
-    # Check if light level is acceptable (if sensor is configured)
-    light_level_ok: >
-      {% if illuminance_sensor is not none and maximum_luminance | int > 0 %}
-        {{ states(illuminance_sensor) | float <= maximum_luminance | float }}
-      {% else %}
-        true
-      {% endif %}
+# Trigger when any motion sensor detects motion
+trigger:
+  platform: state
+  id: "binary_entity"
+  entity_id: input.binary_entity
+  to: "on"
 
-  # Check if light level is acceptable before proceeding
-  condition:
-    - condition: template
-      value_template: "{{ light_level_ok }}"
+# Define variables used in the automation
+variables:
+  # Make input variables available as script variables
+  day_start: !input day_start
+  day_brightness: !input day_brightness
+  night_start: !input night_start
+  night_brightness: !input night_brightness
+  illuminance_sensor: !input illuminance_sensor
+  maximum_luminance: !input maximum_luminance
+  # Calculate if we're in daytime (between day_start and night_start)
+  is_daytime: >
+    {% set now = now().time() %}
+    {% set ds = strptime(day_start, "%H:%M:%S").time() %}
+    {% set ns = strptime(night_start, "%H:%M:%S").time() %}
+    {{ ds <= now < ns }}
+  # Calculate the current brightness based on time of day
+  current_brightness: "{{ day_brightness if is_daytime else night_brightness }}"
+  # Check if light level is acceptable (if sensor is configured)
+  light_level_ok: >
+    {% if illuminance_sensor is not none and maximum_luminance | int > 0 %}
+      {{ states(illuminance_sensor) | float <= maximum_luminance | float }}
+    {% else %}
+      true
+    {% endif %}
 
-  action:
-    # Turn on lights with appropriate brightness
-    - service: light.turn_on
-      target: !input on_lights
-      data:
-        brightness: "{{ current_brightness }}"
+# Check if light level is acceptable before proceeding
+condition:
+  - condition: template
+    value_template: "{{ light_level_ok }}"
 
-    # Wait for motion to stop and delay period to expire
-    - wait_for_trigger:
-        - platform: state
-          entity_id: !input binary_entity
-          to: "off"
-    - delay: !input no_motion_delay
+action:
+  # Turn on lights with appropriate brightness
+  - service: light.turn_on
+    target: !input on_lights
+    data:
+      brightness: "{{ current_brightness }}"
 
-    # Turn off lights
-    - service: light.turn_off
-      target: !input off_lights
+  # Wait for motion to stop and delay period to expire
+  - wait_for_trigger:
+      - platform: state
+        entity_id: !input binary_entity
+        to: "off"
+  - delay: !input no_motion_delay
+
+  # Turn off lights
+  - service: light.turn_off
+    target: !input off_lights
