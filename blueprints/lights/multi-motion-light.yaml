@@ -79,14 +79,6 @@ blueprint:
         number:
           min: 0
           max: 255
-  # Validate that day start time is before night start time
-  validation:
-    - name: "Day start must be before night start"
-      message: "Day start time must be before night start time"
-      condition: >
-        {% set ds = strptime(input.day_start, "%H:%M:%S").time() %}
-        {% set ns = strptime(input.night_start, "%H:%M:%S").time() %}
-        {{ ds < ns }}
 
 # Trigger when any motion sensor detects motion
 trigger:
