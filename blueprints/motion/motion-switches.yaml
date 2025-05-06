@@ -1,0 +1,101 @@
+blueprint:
+  name: Motion Switches
+  description: >
+    Can turn switches on and off when motion is detected.
+  domain: automation
+  source_url: https://github.com/SolerSoft/HomeAssistant/blob/main/blueprints/motion/motion-switches.yaml
+  input:
+    # Motion that will trigger the automation
+    binary_entity:
+      name: "Motion or Occupancy"
+      description: Binary sensor that turns switches on and off
+      selector:
+        entity:
+          domain: binary_sensor
+    # Switches to be controlled by the automation
+    motion_switches:
+      name: "Motion-Controlled Switches"
+      description: Switch entities that turn on when motion is detected and off when motion stops
+      default:
+      selector:
+        target:
+          entity:
+            domain: switch
+    # Ambient light sensors to prevent switches from turning on when it's already bright enough
+    illuminance_sensor:
+      name: "Illuminance Sensor"
+      description: Optional illuminance sensor to prevent switches from turning on
+      default:
+      selector:
+        entity:
+          domain: sensor
+          device_class: illuminance
+    # Maximum ambient light level (in lux) at which switches will still turn on
+    maximum_luminance:
+      name: Maximum Ambient
+      description: >
+        If luminance sensor available, switches won't turn on above this lux (0 to disable)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 1
+    # How long to wait after motion stops before turning off switches
+    no_motion_delay:
+      name: Off Delay
+      description: Seconds to wait after motion stops before turning switches off (0 for immediate)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          step: 1
+          unit_of_measurement: seconds
+
+# If motion is detected within the delay,
+# we restart the script.
+mode: restart
+max_exceeded: silent
+
+# Trigger when any motion sensor detects motion
+trigger:
+  platform: state
+  entity_id: !input binary_entity
+  from: "off"
+  to: "on"
+
+# Define variables used in the automation
+variables:
+  # Make input variables available as script variables
+  illuminance_sensor: !input illuminance_sensor
+  maximum_luminance: !input maximum_luminance
+  # Check if light level is acceptable (if sensor is configured)
+  light_level_ok: >
+    {% if illuminance_sensor is not none and maximum_luminance | int > 0 %}
+      {{ states(illuminance_sensor) | float <= maximum_luminance | float }}
+    {% else %}
+      true
+    {% endif %}
+
+# Check if light level is acceptable before proceeding
+condition:
+  - condition: template
+    value_template: "{{ light_level_ok }}"
+
+action:
+  # Turn on switches
+  - service: switch.turn_on
+    target: !input motion_switches
+
+  # Wait for motion to stop and delay period to expire
+  - wait_for_trigger:
+      - platform: state
+        entity_id: !input binary_entity
+        from: "on"
+        to: "off"
+  - delay: !input no_motion_delay
+
+  # Turn off switches
+  - service: switch.turn_off
+    target: !input motion_switches
