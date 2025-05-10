@@ -49,6 +49,13 @@ blueprint:
           min: 0
           max: 10000
           step: 1
+    # Whether to control brightness levels
+    control_brightness:
+      name: Control Brightness
+      description: Whether to adjust brightness levels based on time of day
+      default: true
+      selector:
+        boolean:
     # How long to wait after motion stops before turning off lights
     no_motion_delay:
       name: Off Delay
@@ -67,6 +74,7 @@ blueprint:
       default: "08:00:00"
       selector:
         time: {}
+      show_if: "{{ control_brightness }}"
     # Brightness level for daytime operation (0-255)
     day_brightness:
       name: Day Brightness
@@ -76,6 +84,7 @@ blueprint:
         number:
           min: 0
           max: 255
+      show_if: "{{ control_brightness }}"
     # Time when nighttime mode begins
     night_start:
       name: Night Start Time
@@ -83,6 +92,7 @@ blueprint:
       default: "22:30:00"
       selector:
         time: {}
+      show_if: "{{ control_brightness }}"
     # Brightness level for nighttime operation (0-255)
     night_brightness:
       name: Night Brightness
@@ -92,6 +102,7 @@ blueprint:
         number:
           min: 0
           max: 255
+      show_if: "{{ control_brightness }}"
 
 # If motion is detected within the delay,
 # we restart the script.
@@ -108,20 +119,29 @@ trigger:
 # Define variables used in the automation
 variables:
   # Make input variables available as script variables
+  control_brightness: !input control_brightness
   day_start: !input day_start
   day_brightness: !input day_brightness
   night_start: !input night_start
   night_brightness: !input night_brightness
   illuminance_sensor: !input illuminance_sensor
   maximum_luminance: !input maximum_luminance
-  # Calculate if we're in daytime (between day_start and night_start)
+  # Only calculate brightness-related variables if control_brightness is true
   is_daytime: >
-    {% set now = now().time() %}
-    {% set ds = strptime(day_start, "%H:%M:%S").time() %}
-    {% set ns = strptime(night_start, "%H:%M:%S").time() %}
-    {{ ds <= now < ns }}
-  # Calculate the current brightness based on time of day
-  current_brightness: "{{ day_brightness if is_daytime else night_brightness }}"
+    {% if control_brightness %}
+      {% set now = now().time() %}
+      {% set ds = strptime(day_start, "%H:%M:%S").time() %}
+      {% set ns = strptime(night_start, "%H:%M:%S").time() %}
+      {{ ds <= now < ns }}
+    {% else %}
+      false
+    {% endif %}
+  current_brightness: >
+    {% if control_brightness %}
+      {{ day_brightness if is_daytime else night_brightness }}
+    {% else %}
+      0
+    {% endif %}
   # Check if light level is acceptable (if sensor is configured)
   light_level_ok: >
     {% if illuminance_sensor is not none and maximum_luminance | int > 0 %}
@@ -139,8 +159,12 @@ action:
   # Turn on lights with appropriate brightness
   - service: light.turn_on
     target: !input on_lights
-    data:
-      brightness: "{{ current_brightness }}"
+    data: >
+      {% if control_brightness %}
+        { "brightness": {{ current_brightness }} }
+      {% else %}
+        {}
+      {% endif %}
 
   # Wait for motion to stop and delay period to expire
   - wait_for_trigger:
