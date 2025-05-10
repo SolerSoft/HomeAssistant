@@ -49,13 +49,6 @@ blueprint:
           min: 0
           max: 10000
           step: 1
-    # Whether to control brightness levels
-    control_brightness:
-      name: Control Brightness
-      description: Whether to adjust brightness levels based on time of day
-      default: true
-      selector:
-        boolean:
     # How long to wait after motion stops before turning off lights
     no_motion_delay:
       name: Off Delay
@@ -67,42 +60,51 @@ blueprint:
           max: 3600
           step: 1
           unit_of_measurement: seconds
-    # Time when daytime mode begins
-    day_start:
-      name: Day Start Time
-      description: Time when daytime begins
-      default: "08:00:00"
+    # Whether to control brightness levels
+    control_brightness:
+      name: Control Brightness
+      description: Whether to adjust brightness levels based on time of day
+      default: true
       selector:
-        time: {}
-      show_if: "{{ control_brightness }}"
-    # Brightness level for daytime operation (0-255)
-    day_brightness:
-      name: Day Brightness
-      description: Brightness level (0–255) for daytime
-      default: 255
-      selector:
-        number:
-          min: 0
-          max: 255
-      show_if: "{{ control_brightness }}"
-    # Time when nighttime mode begins
-    night_start:
-      name: Night Start Time
-      description: Time when nighttime begins
-      default: "22:30:00"
-      selector:
-        time: {}
-      show_if: "{{ control_brightness }}"
-    # Brightness level for nighttime operation (0-255)
-    night_brightness:
-      name: Night Brightness
-      description: Brightness level (0–255) for nighttime
-      default: 80
-      selector:
-        number:
-          min: 0
-          max: 255
-      show_if: "{{ control_brightness }}"
+        boolean:
+    brightness_settings:
+      name: Brightness Settings
+      icon: mdi:brightness-6
+      description: Configure the time periods and brightness levels for day and night operation
+      collapsed: true
+      input:
+        # Time when daytime mode begins
+        day_start:
+          name: Day Start Time
+          description: Time when daytime begins
+          default: "08:00:00"
+          selector:
+            time: {}
+        # Brightness level for daytime operation (0-255)
+        day_brightness:
+          name: Day Brightness
+          description: Brightness level (0–255) for daytime
+          default: 255
+          selector:
+            number:
+              min: 0
+              max: 255
+        # Time when nighttime mode begins
+        night_start:
+          name: Night Start Time
+          description: Time when nighttime begins
+          default: "22:30:00"
+          selector:
+            time: {}
+        # Brightness level for nighttime operation (0-255)
+        night_brightness:
+          name: Night Brightness
+          description: Brightness level (0–255) for nighttime
+          default: 80
+          selector:
+            number:
+              min: 0
+              max: 255
 
 # If motion is detected within the delay,
 # we restart the script.
